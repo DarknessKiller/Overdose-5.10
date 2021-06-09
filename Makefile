@@ -720,6 +720,8 @@ ifdef may-sync-config
 # changes are detected. This should be included after arch/$(SRCARCH)/Makefile
 # because some architectures define CROSS_COMPILE there.
 include include/config/auto.conf.cmd
+GC_FLAGS += -O3 -mcpu=cortex-a76.cortex-a55+crypto+crc
+CL_FLAGS += -O3 -mcpu=cortex-a76+crypto+crc
 
 $(KCONFIG_CONFIG):
 	@echo >&2 '***'
