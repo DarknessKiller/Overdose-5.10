@@ -1,0 +1,67 @@
+name: Overdose Kernel Build CI
+
+on:
+  push:
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ GITHUB.TOKEN }}
+
+jobs:
+  build-gki-clang:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup repo
+      run: | 
+        sudo apt update -y
+        sudo apt install -y repo elfutils libarchive-tools
+    - name: Repo sync
+      run: |
+        repo init -u https://github.com/DarknessKiller/android_kernel_manifest.git -b overdose-gki-5.10 --depth=1
+        repo sync --no-tags --no-clone-bundle -j$(nproc --all)
+    - name: KernelSU sync
+      run: |
+        cd common
+        git submodule update --init --recursive
+    - name: Fetch Clang
+      run: |
+        rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
+        mkdir -p prebuilts-master/clang/host/linux-x86/clang-r416183b/
+        wget https://cdn.kernel.org/pub/tools/llvm/files/llvm-14.0.6-x86_64.tar.gz -O clang.tar.gz
+        tar -xf clang.tar.gz -C prebuilts-master/clang/host/linux-x86/clang-r416183b --strip-components=1
+    - name: Clang Build
+      run: |
+        sed -i s/build-user/mrdarknessk/g build/_setup_env.sh
+        sed -i s/build-host/github-actions/g build/_setup_env.sh
+        LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh
+    - name: Create zip
+      run: |
+        cp out/android12-5.10/dist/Image ak3/
+        cd ak3/ && zip -r9 OverdoseGKI-5.10-$(/bin/date -u '+%d%m%Y%I%M').zip * -x .git README.md ./*/placeholder
+        cd ../
+    - uses: actions/upload-artifact@main
+      with:
+       name: release
+       path: ak3/*.zip
+
+  publish-release:
+    needs: [build-gki-clang]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Restoring artifacts
+      uses: actions/download-artifact@main
+      with:
+        name: release
+        path: ${{ github.workspace }}
+    - name: Release Tag
+      id: release_tag
+      run: echo "TAG_NAME=$(date -u +%d%m%Y%I%M)" >> $GITHUB_ENV
+    - name: Create Release
+      run: gh release create ${{ env.TAG_NAME }} --generate-notes -p *.zip
+    - name: Release Check
+      run: gh release list -L 1 > list
+    - name: Prepare release message
+      run: gh release view $(cat list | awk '{ print substr( $0, 1, length($0)-45 ) }') > release-text
