@@ -24,13 +24,11 @@ jobs:
       run: |
         cd common
         git submodule update --init --recursive
-    # - name: Fetch Clang
-    #   run: |
-    #     rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
-    #     mkdir -p prebuilts-master/clang/host/linux-x86/clang-r416183b/
-    #     wget https://cdn.kernel.org/pub/tools/llvm/files/llvm-14.0.6-x86_64.tar.gz -O clang.tar.gz
-    #     tar -xf clang.tar.gz -C prebuilts-master/clang/host/linux-x86/clang-r416183b --strip-components=1
-    - name: Clang Build
+    - name: Fetch SlimLLVM
+      run: |
+        rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
+        git clone https://github.com/DarknessKiller/slimllvm.git -b 14.0.6 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
+    - name: Build Kernel
       run: |
         sed -i s/build-user/mrdarknessk/g build/_setup_env.sh
         sed -i s/build-host/github-actions/g build/_setup_env.sh
