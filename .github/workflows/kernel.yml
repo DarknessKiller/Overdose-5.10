@@ -27,7 +27,7 @@ jobs:
     - name: Fetch SlimLLVM
       run: |
         rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
-        git clone https://github.com/DarknessKiller/slimllvm.git -b 14.0.6 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
+        git clone https://gitlab.com/MRDarknessKiller/slimllvm.git -b 14 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
     - name: Build Kernel
       run: |
         sed -i s/build-user/mrdarknessk/g build/_setup_env.sh
