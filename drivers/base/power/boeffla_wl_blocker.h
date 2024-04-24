@@ -16,8 +16,8 @@
 
 #define BOEFFLA_WL_BLOCKER_VERSION	"1.1.0"
 
-#define LIST_WL_DEFAULT				"qcom_rx_wakelock;NETLINK;IPA_WS;hal_bluetooth_lock"
+#define LIST_WL_DEFAULT				"qcom_rx_wakelock;NETLINK;IPA_WS;hal_bluetooth_lock;894000.qcom,qup_uart;IPA_CLIENT_APPS_WAN_LOW_LAT_CONS;IPA_CLIENT_APPS_WAN_COAL_CONS;IPA_CLIENT_APPS_LAN_CONS;[timerfd];rmnet_ipa%d;rmnet_ctl;spi0.0;alarmtimer.0.auto"
 
 #define LENGTH_LIST_WL				2048
-#define LENGTH_LIST_WL_DEFAULT		50
+#define LENGTH_LIST_WL_DEFAULT		216
 #define LENGTH_LIST_WL_SEARCH		LENGTH_LIST_WL + LENGTH_LIST_WL_DEFAULT + 5
