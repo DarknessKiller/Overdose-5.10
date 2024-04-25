@@ -21,7 +21,7 @@ jobs:
     - name: Initialize repo
       run: repo init -u https://github.com/DarknessKiller/android_kernel_manifest.git -b overdose-gki-5.10 --depth=1
     - name: Use staging repo
-      run: sed -i 's/revision="android12-5\.10-2023-04_r8\/release"/revision="android12-5.10-2023-04_r8\/staging"/' .repo/manifest.xml
+      run: sed -i 's/revision="android12-5\.10-2023-04_r8\/release"/revision="android12-5.10-2023-04_r8\/staging"/' .repo/manifests/default.xml
     - name: Repo sync
       run: repo sync --no-tags --no-clone-bundle -j$(nproc --all)
     - name: KernelSU sync
