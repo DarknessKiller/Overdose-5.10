@@ -6,6 +6,7 @@ on:
 
 env:
   GH_TOKEN: ${{ GITHUB.TOKEN }}
+  TZ: ${{secrets.TZ}}
 
 jobs:
   build-gki-clang:
@@ -32,11 +33,13 @@ jobs:
       run: |
         sed -i s/build-user/mrdarknessk/g build/_setup_env.sh
         sed -i s/build-host/github-actions/g build/_setup_env.sh
+        awk -v new_tz="$TZ" '{gsub("TZ=UTC", "TZ=" new_tz)} 1' build/_setup_env.sh > temp && mv temp build/_setup_env.sh
+        sed -i 's/KBUILD_BUILD_TIMESTAMP="$(date -d @${SOURCE_DATE_EPOCH})"/KBUILD_BUILD_TIMESTAMP="$(date)"/g' build/_setup_env.sh
         LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh
     - name: Create zip
       run: |
         cp out/android12-5.10/dist/Image ak3/
-        cd ak3/ && zip -r9 OverdoseGKI-5.10-$(/bin/date -u '+%d%m%Y%I%M').zip * -x .git README.md ./*/placeholder
+        cd ak3/ && zip -r9 OverdoseGKI-5.10-$(date +%Y%m%d-%H%M).zip * -x .git README.md ./*/placeholder
         cd ../
     - uses: actions/upload-artifact@main
       with:
