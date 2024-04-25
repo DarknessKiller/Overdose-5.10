@@ -2,7 +2,8 @@ name: Overdose Kernel Build CI
 
 on:
   push:
-  workflow_dispatch:
+    branches:
+      - android12-5.10-2023-04_r8/staging
 
 env:
   GH_TOKEN: ${{ GITHUB.TOKEN }}
@@ -17,10 +18,12 @@ jobs:
       run: | 
         sudo apt update -y
         sudo apt install -y repo elfutils libarchive-tools
+    - name: Initialize repo
+      run: repo init -u https://github.com/DarknessKiller/android_kernel_manifest.git -b overdose-gki-5.10 --depth=1
+    - name: Use staging repo
+      run: sed -i 's/revision="android12-5\.10-2023-04_r8\/release"/revision="android12-5.10-2023-04_r8\/staging"/' .repo/manifest.xml
     - name: Repo sync
-      run: |
-        repo init -u https://github.com/DarknessKiller/android_kernel_manifest.git -b overdose-gki-5.10 --depth=1
-        repo sync --no-tags --no-clone-bundle -j$(nproc --all)
+      run: repo sync --no-tags --no-clone-bundle -j$(nproc --all)
     - name: KernelSU sync
       run: |
         cd common
@@ -45,24 +48,3 @@ jobs:
       with:
        name: release
        path: ak3/*.zip
-
-  publish-release:
-    needs: [build-gki-clang]
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Restoring artifacts
-      uses: actions/download-artifact@main
-      with:
-        name: release
-        path: ${{ github.workspace }}
-    - name: Release Tag
-      id: release_tag
-      run: echo "TAG_NAME=$(date -u +%d%m%Y%I%M)" >> $GITHUB_ENV
-    - name: Create Release
-      run: gh release create ${{ env.TAG_NAME }} --generate-notes -p *.zip
-    - name: Release Check
-      run: gh release list -L 1 > list
-    - name: Prepare release message
-      run: gh release view $(cat list | awk '{ print substr( $0, 1, length($0)-45 ) }') > release-text
