@@ -1,0 +1,107 @@
+name: Build Kernel Release CI
+
+on:
+  push:
+    branches:
+      - '*/release'
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  TZ: ${{ secrets.TZ }}
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  build-gki-clang:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up environment
+      id: setup-env
+      run: |
+        sudo apt update -y
+        sudo apt install -y repo elfutils libarchive-tools
+
+    - name: Initialize repo
+      id: init-repo
+      run: repo init -u https://github.com/DarknessKiller/android_kernel_manifest.git -b overdose-gki-5.10 --depth=1
+
+    - name: Use release repo
+      id: use-release-repo
+      run: |
+        sed -i "s#revision=\"android12-5\.10-2023-04_r8/release\"#revision=\"$BRANCH_NAME\"#" .repo/manifests/default.xml
+        cat .repo/manifests/default.xml
+
+    - name: Repo sync
+      id: repo-sync
+      run: repo sync --no-tags --no-clone-bundle -j$(nproc --all)
+
+    - name: KernelSU sync
+      id: kernelsu-sync
+      run: |
+        cd common
+        git submodule update --init --recursive
+
+    - name: Fetch SlimLLVM
+      id: fetch-slimllvm
+      run: |
+        rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
+        git clone https://gitlab.com/MRDarknessKiller/slimllvm.git -b 14 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
+
+    - name: Configure build environment
+      id: configure-build
+      run: |
+        echo "CURRENT_EPOCH=$(date +%s)" >> $GITHUB_OUTPUT
+        sed -i 's/build-user/mrdarknessk/g; s/build-host/github-actions/g; s#TZ=UTC#TZ='"$TZ"'#g' build/_setup_env.sh
+        sed -i 's/KBUILD_BUILD_TIMESTAMP="$(date -d @${SOURCE_DATE_EPOCH})"/KBUILD_BUILD_TIMESTAMP="$(date -d @${GITHUB_OUTPUT})"/g' build/_setup_env.sh
+
+    - name: Build kernel
+      id: build-kernel
+      run: |
+        LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64.overdose build/build.sh
+  
+    - name: Create zip
+      id: create-zip
+      env:
+        CURRENT_EPOCH: ${{ steps.configure-build.outputs.CURRENT_EPOCH }}
+      run: |
+        cp out/android12-5.10/dist/Image ak3/
+        cd ak3/ && zip -r9 "OverdoseGKI-5.10-$(date -d @$CURRENT_EPOCH '+%Y%m%d-%H%M').zip" * -x .git README.md ./*/placeholder
+
+    - name: Upload artifact
+      id: upload-artifact
+      uses: actions/upload-artifact@main
+      with:
+       name: release
+       path: ak3/*.zip
+
+  publish-release:
+    needs: [build-gki-clang]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      id: checkout-code
+      uses: actions/checkout@main
+
+    - name: Download artifact
+      id: download-artifact
+      uses: actions/download-artifact@main
+      with:
+        name: release
+        path: ${{ github.workspace }}
+
+    - name: Release tag
+      id: release-tag
+      run: echo "TAG_NAME=$(date -u +%d%m%Y%I%M)" >> $GITHUB_ENV
+
+    - name: Create release
+      id: create-release
+      run: gh release create ${{ env.TAG_NAME }} --generate-notes -p *.zip
+
+    - name: Release check
+      id: release-check
+      run: gh release list -L 1 > list
+
+    - name: Prepare release message
+      id: prepare-release-message
+      run: gh release view $(cat list | awk '{ print substr( $0, 1, length($0)-45 ) }') > release-text
