@@ -34,11 +34,11 @@ jobs:
       id: repo-sync
       run: repo sync --no-tags --no-clone-bundle -j$(nproc --all)
 
-    - name: KernelSU sync
-      id: kernelsu-sync
-      run: |
-        cd common
-        git submodule update --init --recursive
+    # - name: KernelSU sync
+    #   id: kernelsu-sync
+    #   run: |
+    #     cd common
+    #     git submodule update --init --recursive
 
     - name: Fetch SlimLLVM
       id: fetch-slimllvm
