@@ -44,7 +44,7 @@ jobs:
       id: fetch-slimllvm
       run: |
         rm -rf prebuilts-master/clang/host/linux-x86/clang-r416183b
-        git clone https://gitlab.com/MRDarknessKiller/slimllvm.git -b 14 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
+        git clone https://gitlab.com/MRDarknessKiller/slimllvm.git -b 18 --depth=1 prebuilts-master/clang/host/linux-x86/clang-r416183b
     
     - name: Configure build environment
       id: configure-build
